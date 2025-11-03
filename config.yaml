@@ -1,72 +1,188 @@
-# Application configuration (YAML)
-# Copy to config.yaml or load as needed in your application.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: playground-config
+  namespace: default
+data:
+  DB_HOST: "postgres"
+  DB_PORT: "5432"
+  DB_NAME: "playground"
+  DB_SSLMODE: "disable"
 
-app:
-  name: playground
-  env: development # one of: development, staging, production
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: playground-secrets
+  namespace: default
+type: Opaque
+stringData:
+  DB_USER: "heathcliff"
+  DB_PASSWORD: "xyz"
 
-server:
-  http:
-    enabled: true
-    host: 0.0.0.0
-    port: 8080
-  grpc:
-    enabled: true
-    host: 0.0.0.0
-    port: 9090
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: playground-grpc
+  namespace: default
+  labels:
+    app: playground-grpc
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: playground-grpc
+  template:
+    metadata:
+      labels:
+        app: playground-grpc
+    spec:
+      containers:
+      - name: playground-grpc
+        image: playground-grpc:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: grpc
+          containerPort: 9090
+          protocol: TCP
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: playground-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: playground-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: playground-config
+              key: DB_NAME
+        - name: DB_SSLMODE
+          valueFrom:
+            configMapKeyRef:
+              name: playground-config
+              key: DB_SSLMODE
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: playground-secrets
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: playground-secrets
+              key: DB_PASSWORD
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          tcpSocket:
+            port: 9090
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          tcpSocket:
+            port: 9090
+          initialDelaySeconds: 5
+          periodSeconds: 10
 
-logging:
-  level: info    # debug, info, warn, error
-  format: text   # text or json
-  enableCaller: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: playground-grpc
+  namespace: default
+  labels:
+    app: playground-grpc
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9090
+    targetPort: 9090
+    protocol: TCP
+    name: grpc
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+    name: http
+  selector:
+    app: playground-grpc
 
-interceptors:
-  unary: true
-  recovery: true
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: default
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+          name: postgres
+        env:
+        - name: POSTGRES_DB
+          value: "playground"
+        - name: POSTGRES_USER
+          value: "postgres"
+        - name: POSTGRES_PASSWORD
+          value: "postgres"
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
 
-metrics:
-  enabled: true
-  path: /metrics
-
-timeouts:
-  read: 5s
-  write: 10s
-  idle: 120s
-
-database:
-  # Default database selection. Set to `postgres` to use Postgres, or `sqlite3` to use the bundled SQLite file.
-  default: postgres
-
-  postgres:
-    host: localhost
-    port: 5432
-    user: heathcliff
-    password: "password" # use env/secret manager in production
-    dbname: postgres
-    sslmode: disable
-    maxOpenConns: 25
-    maxIdleConns: 5
-    connMaxLifetime: 30m
-    # Example DSN (replace credentials securely in production):
-    dsn: "postgres://heathcliff:password@localhost:5432/playground?sslmode=disable"
-
-security:
-  tls:
-    enabled: false
-    certFile: ""
-    keyFile: ""
-  auth:
-    jwt:
-      enabled: false
-      issuer: playground
-      secret: "secret" # DO NOT use this in production; load from env/secret manager
-
-observability:
-  prometheus: true
-  tracing:
-    enabled: false
-    provider: jaeger
-    endpoint: ""
-
-features:
-  helloEndpoint: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: default
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+    protocol: TCP
+    name: postgres
+  selector:
+    app: postgres

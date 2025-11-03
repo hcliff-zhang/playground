@@ -7,12 +7,12 @@
 package serverpb
 
 import (
+	_ "google.golang.org/genproto/googleapis/api/annotations"
+	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
+	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
-
-	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
-	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 )
 
 const (
@@ -766,7 +766,7 @@ var File_server_serverpb_api_proto protoreflect.FileDescriptor
 
 const file_server_serverpb_api_proto_rawDesc = "" +
 	"\n" +
-	"\x19server/serverpb/api.proto\x12\bserverpb\"\xf1\x01\n" +
+	"\x19server/serverpb/api.proto\x12\bserverpb\x1a\x1cgoogle/api/annotations.proto\"\xf1\x01\n" +
 	"\aPatient\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x04R\x02id\x12\x1d\n" +
 	"\n" +
@@ -814,15 +814,15 @@ const file_server_serverpb_api_proto_rawDesc = "" +
 	"\n" +
 	"patient_id\x18\x01 \x01(\x04R\tpatientId\"Y\n" +
 	"\x19ListPrescriptionsResponse\x12<\n" +
-	"\rprescriptions\x18\x01 \x03(\v2\x16.serverpb.PrescriptionR\rprescriptions2\x9a\x04\n" +
-	"\x03Api\x12P\n" +
-	"\rCreatePatient\x12\x1e.serverpb.CreatePatientRequest\x1a\x1f.serverpb.CreatePatientResponse\x12G\n" +
+	"\rprescriptions\x18\x01 \x03(\v2\x16.serverpb.PrescriptionR\rprescriptions2\xf6\x05\n" +
+	"\x03Api\x12i\n" +
+	"\rCreatePatient\x12\x1e.serverpb.CreatePatientRequest\x1a\x1f.serverpb.CreatePatientResponse\"\x17\x82\xd3\xe4\x93\x02\x11:\x01*\"\f/v1/patients\x12b\n" +
 	"\n" +
-	"GetPatient\x12\x1b.serverpb.GetPatientRequest\x1a\x1c.serverpb.GetPatientResponse\x12M\n" +
-	"\fListPatients\x12\x1d.serverpb.ListPatientsRequest\x1a\x1e.serverpb.ListPatientsResponse\x12_\n" +
-	"\x12CreatePrescription\x12#.serverpb.CreatePrescriptionRequest\x1a$.serverpb.CreatePrescriptionResponse\x12V\n" +
-	"\x0fGetPrescription\x12 .serverpb.GetPrescriptionRequest\x1a!.serverpb.GetPrescriptionResponse\x12p\n" +
-	"\x1bListPrescriptionsForPatient\x12,.serverpb.ListPrescriptionsForPatientRequest\x1a#.serverpb.ListPrescriptionsResponseB=Z;github.com/hcliff-zhang/playground/server/serverpb;serverpbb\x06proto3"
+	"GetPatient\x12\x1b.serverpb.GetPatientRequest\x1a\x1c.serverpb.GetPatientResponse\"\x19\x82\xd3\xe4\x93\x02\x13\x12\x11/v1/patients/{id}\x12c\n" +
+	"\fListPatients\x12\x1d.serverpb.ListPatientsRequest\x1a\x1e.serverpb.ListPatientsResponse\"\x14\x82\xd3\xe4\x93\x02\x0e\x12\f/v1/patients\x12\x9e\x01\n" +
+	"\x12CreatePrescription\x12#.serverpb.CreatePrescriptionRequest\x1a$.serverpb.CreatePrescriptionResponse\"=\x82\xd3\xe4\x93\x027:\fprescription\"'/v1/patients/{patient_id}/prescriptions\x12v\n" +
+	"\x0fGetPrescription\x12 .serverpb.GetPrescriptionRequest\x1a!.serverpb.GetPrescriptionResponse\"\x1e\x82\xd3\xe4\x93\x02\x18\x12\x16/v1/prescriptions/{id}\x12\xa1\x01\n" +
+	"\x1bListPrescriptionsForPatient\x12,.serverpb.ListPrescriptionsForPatientRequest\x1a#.serverpb.ListPrescriptionsResponse\"/\x82\xd3\xe4\x93\x02)\x12'/v1/patients/{patient_id}/prescriptionsB=Z;github.com/hcliff-zhang/playground/server/serverpb;serverpbb\x06proto3"
 
 var (
 	file_server_serverpb_api_proto_rawDescOnce sync.Once

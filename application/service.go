@@ -1,70 +1,103 @@
 package application
 
 import (
-	context "context"
-	"google.golang.org/grpc"
+	"context"
+
+	"github.com/hcliff-zhang/playground/database"
 	"github.com/hcliff-zhang/playground/server/serverpb"
 )
 
-// Service wraps a gRPC client for the Api service and provides methods to interact with the database via RPC.
+// Service wraps a database handle and provides methods to read and write data.
 type Service struct {
-	client serverpb.ApiClient
+	serverpb.UnimplementedApiServer
+	DB *database.DB
 }
 
-func NewService(conn *grpc.ClientConn) *Service {
-	return &Service{client: serverpb.NewApiClient(conn)}
+func NewService(db *database.DB) *Service {
+	return &Service{DB: db}
 }
 
-// CreatePatient sends a CreatePatientRequest via gRPC and returns the created patient.
-func (s *Service) CreatePatient(ctx context.Context, patient *serverpb.Patient) (*serverpb.Patient, error) {
-	resp, err := s.client.CreatePatient(ctx, &serverpb.CreatePatientRequest{Patient: patient})
+// --- Patient methods ---
+
+// CreatePatient creates a new patient in the database.
+func (s *Service) CreatePatient(ctx context.Context, req *serverpb.CreatePatientRequest) (*serverpb.CreatePatientResponse, error) {
+	// Convert proto to database model
+	dbPatient := PatientFromProto(req.Patient)
+	
+	// Save to database
+	if err := s.DB.CreatePatient(dbPatient); err != nil {
+		return nil, err
+	}
+	
+	// Convert back to proto
+	return &serverpb.CreatePatientResponse{
+		Patient: PatientToProto(dbPatient),
+	}, nil
+}
+
+// GetPatient fetches a patient by ID with preloaded prescriptions.
+func (s *Service) GetPatient(ctx context.Context, req *serverpb.GetPatientRequest) (*serverpb.GetPatientResponse, error) {
+	dbPatient, err := s.DB.GetPatientByID(uint(req.Id))
 	if err != nil {
 		return nil, err
 	}
-	return resp.Patient, nil
+	
+	return &serverpb.GetPatientResponse{
+		Patient: PatientToProto(dbPatient),
+	}, nil
 }
 
-// GetPatient fetches a patient by ID via gRPC.
-func (s *Service) GetPatient(ctx context.Context, id uint64) (*serverpb.Patient, error) {
-	resp, err := s.client.GetPatient(ctx, &serverpb.GetPatientRequest{Id: id})
+// ListPatients returns a paginated list of patients.
+func (s *Service) ListPatients(ctx context.Context, req *serverpb.ListPatientsRequest) (*serverpb.ListPatientsResponse, error) {
+	dbPatients, err := s.DB.ListPatients(int(req.Limit), int(req.Offset))
 	if err != nil {
 		return nil, err
 	}
-	return resp.Patient, nil
+	
+	return &serverpb.ListPatientsResponse{
+		Patients: PatientsToProto(dbPatients),
+		Total:    int32(len(dbPatients)),
+	}, nil
 }
 
-// ListPatients fetches a paginated list of patients via gRPC.
-func (s *Service) ListPatients(ctx context.Context, limit, offset int32) ([]*serverpb.Patient, error) {
-	resp, err := s.client.ListPatients(ctx, &serverpb.ListPatientsRequest{Limit: limit, Offset: offset})
+// --- Prescription methods ---
+
+// CreatePrescription creates a prescription associated with a patient.
+func (s *Service) CreatePrescription(ctx context.Context, req *serverpb.CreatePrescriptionRequest) (*serverpb.CreatePrescriptionResponse, error) {
+	// Convert proto to database model
+	dbPrescription := PrescriptionFromProto(req.Prescription)
+	
+	// Save to database
+	if err := s.DB.CreatePrescriptionForPatient(uint(req.PatientId), dbPrescription); err != nil {
+		return nil, err
+	}
+	
+	// Convert back to proto
+	return &serverpb.CreatePrescriptionResponse{
+		Prescription: PrescriptionToProto(dbPrescription),
+	}, nil
+}
+
+// GetPrescription fetches a prescription by ID.
+func (s *Service) GetPrescription(ctx context.Context, req *serverpb.GetPrescriptionRequest) (*serverpb.GetPrescriptionResponse, error) {
+	dbPrescription, err := s.DB.GetPrescriptionByID(uint(req.Id))
 	if err != nil {
 		return nil, err
 	}
-	return resp.Patients, nil
+	
+	return &serverpb.GetPrescriptionResponse{
+		Prescription: PrescriptionToProto(dbPrescription),
+	}, nil
 }
 
-// CreatePrescription sends a CreatePrescriptionRequest via gRPC and returns the created prescription.
-func (s *Service) CreatePrescription(ctx context.Context, patientID uint64, prescription *serverpb.Prescription) (*serverpb.Prescription, error) {
-	resp, err := s.client.CreatePrescription(ctx, &serverpb.CreatePrescriptionRequest{PatientId: patientID, Prescription: prescription})
+// ListPrescriptionsForPatient returns all prescriptions for a patient.
+func (s *Service) ListPrescriptionsForPatient(ctx context.Context, req *serverpb.ListPrescriptionsForPatientRequest) (*serverpb.ListPrescriptionsResponse, error) {
+	dbPrescriptions, err := s.DB.ListPrescriptionsForPatientAssoc(uint(req.PatientId))
 	if err != nil {
 		return nil, err
 	}
-	return resp.Prescription, nil
-}
-
-// GetPrescription fetches a prescription by ID via gRPC.
-func (s *Service) GetPrescription(ctx context.Context, id uint64) (*serverpb.Prescription, error) {
-	resp, err := s.client.GetPrescription(ctx, &serverpb.GetPrescriptionRequest{Id: id})
-	if err != nil {
-		return nil, err
-	}
-	return resp.Prescription, nil
-}
-
-// ListPrescriptionsForPatient fetches all prescriptions for a patient via gRPC.
-func (s *Service) ListPrescriptionsForPatient(ctx context.Context, patientID uint64) ([]*serverpb.Prescription, error) {
-	resp, err := s.client.ListPrescriptionsForPatient(ctx, &serverpb.ListPrescriptionsForPatientRequest{PatientId: patientID})
-	if err != nil {
-		return nil, err
-	}
-	return resp.Prescriptions, nil
+	
+	return &serverpb.ListPrescriptionsResponse{
+		Prescriptions: PrescriptionsToProto(dbPrescriptions),
+	}, nil
 }

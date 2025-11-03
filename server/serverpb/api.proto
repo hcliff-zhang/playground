@@ -4,6 +4,8 @@ package serverpb;
 
 option go_package = "github.com/hcliff-zhang/playground/server/serverpb;serverpb";
 
+import "google/api/annotations.proto";
+
 // Patient message
 message Patient {
   uint64 id = 1;
@@ -75,11 +77,37 @@ message ListPrescriptionsResponse {
 
 // API service definition
 service Api {
-  rpc CreatePatient(CreatePatientRequest) returns (CreatePatientResponse);
-  rpc GetPatient(GetPatientRequest) returns (GetPatientResponse);
-  rpc ListPatients(ListPatientsRequest) returns (ListPatientsResponse);
+  rpc CreatePatient(CreatePatientRequest) returns (CreatePatientResponse) {
+    option (google.api.http) = {
+      post: "/v1/patients"
+      body: "*"
+    };
+  }
+  rpc GetPatient(GetPatientRequest) returns (GetPatientResponse) {
+    option (google.api.http) = {
+      get: "/v1/patients/{id}"
+    };
+  }
+  rpc ListPatients(ListPatientsRequest) returns (ListPatientsResponse) {
+    option (google.api.http) = {
+      get: "/v1/patients"
+    };
+  }
 
-  rpc CreatePrescription(CreatePrescriptionRequest) returns (CreatePrescriptionResponse);
-  rpc GetPrescription(GetPrescriptionRequest) returns (GetPrescriptionResponse);
-  rpc ListPrescriptionsForPatient(ListPrescriptionsForPatientRequest) returns (ListPrescriptionsResponse);
+  rpc CreatePrescription(CreatePrescriptionRequest) returns (CreatePrescriptionResponse) {
+    option (google.api.http) = {
+      post: "/v1/patients/{patient_id}/prescriptions"
+      body: "prescription"
+    };
+  }
+  rpc GetPrescription(GetPrescriptionRequest) returns (GetPrescriptionResponse) {
+    option (google.api.http) = {
+      get: "/v1/prescriptions/{id}"
+    };
+  }
+  rpc ListPrescriptionsForPatient(ListPrescriptionsForPatientRequest) returns (ListPrescriptionsResponse) {
+    option (google.api.http) = {
+      get: "/v1/patients/{patient_id}/prescriptions"
+    };
+  }
 }
