@@ -88,15 +88,19 @@ spec:
             memory: "512Mi"
             cpu: "500m"
         livenessProbe:
-          tcpSocket:
-            port: 9090
+          httpGet:
+            path: /v1/patients
+            port: 8080
           initialDelaySeconds: 15
           periodSeconds: 20
+          failureThreshold: 3
         readinessProbe:
-          tcpSocket:
-            port: 9090
+          httpGet:
+            path: /v1/patients
+            port: 8080
           initialDelaySeconds: 5
           periodSeconds: 10
+          failureThreshold: 3
 
 ---
 apiVersion: v1

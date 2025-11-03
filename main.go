@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -53,10 +55,10 @@ func main() {
 	// Initialize database connection
 	db, err := database.NewPostgres(
 		dsn,
-		25,                  // maxOpenConns
-		25,                  // maxIdleConns
-		5*time.Minute,       // connMaxLifetime
-		logger.Info,         // logLevel
+		25,            // maxOpenConns
+		25,            // maxIdleConns
+		5*time.Minute, // connMaxLifetime
+		logger.Info,   // logLevel
 	)
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
@@ -67,23 +69,47 @@ func main() {
 		log.Fatalf("Failed to run migrations: %v", err)
 	}
 
-	// Create a TCP listener on the gRPC port
-	listener, err := net.Listen("tcp", GRPCPort)
-	if err != nil {
-		log.Fatalf("Failed to listen on port %s: %v", GRPCPort, err)
-	}
-
-	// Create a new gRPC server
-	grpcServer := grpc.NewServer()
-
 	// Create the service implementation with database
 	service := application.NewService(db)
 
-	// Register the gRPC handlers
-	application.RegisterGRPCHandlers(grpcServer, service)
+	// Start gRPC server in a goroutine
+	go func() {
+		// Create a TCP listener on the gRPC port
+		listener, err := net.Listen("tcp", GRPCPort)
+		if err != nil {
+			log.Fatalf("Failed to listen on gRPC port %s: %v", GRPCPort, err)
+		}
 
-	log.Printf("Starting gRPC server on port %s", GRPCPort)
-	if err := grpcServer.Serve(listener); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
+		// Create a new gRPC server
+		grpcServer := grpc.NewServer()
+
+		// Register the gRPC handlers
+		application.RegisterGRPCHandlers(grpcServer, service)
+
+		log.Printf("Starting gRPC server on port %s", GRPCPort)
+		if err := grpcServer.Serve(listener); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
+
+	// Give the gRPC server a moment to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Register HTTP gateway
+	ctx := context.Background()
+	httpHandler, err := application.RegisterHTTPGateway(ctx, GRPCPort)
+	if err != nil {
+		log.Fatalf("Failed to register HTTP gateway: %v", err)
+	}
+
+	// Start HTTP server
+	httpServer := &http.Server{
+		Addr:    HTTPPort,
+		Handler: httpHandler,
+	}
+
+	log.Printf("Starting HTTP gateway on port %s", HTTPPort)
+	if err := httpServer.ListenAndServe(); err != nil {
+		log.Fatalf("Failed to serve HTTP: %v", err)
 	}
 }
