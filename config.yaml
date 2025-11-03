@@ -1,0 +1,72 @@
+# Application configuration (YAML)
+# Copy to config.yaml or load as needed in your application.
+
+app:
+  name: playground
+  env: development # one of: development, staging, production
+
+server:
+  http:
+    enabled: true
+    host: 0.0.0.0
+    port: 8080
+  grpc:
+    enabled: true
+    host: 0.0.0.0
+    port: 9090
+
+logging:
+  level: info    # debug, info, warn, error
+  format: text   # text or json
+  enableCaller: false
+
+interceptors:
+  unary: true
+  recovery: true
+
+metrics:
+  enabled: true
+  path: /metrics
+
+timeouts:
+  read: 5s
+  write: 10s
+  idle: 120s
+
+database:
+  # Default database selection. Set to `postgres` to use Postgres, or `sqlite3` to use the bundled SQLite file.
+  default: postgres
+
+  postgres:
+    host: localhost
+    port: 5432
+    user: heathcliff
+    password: "password" # use env/secret manager in production
+    dbname: postgres
+    sslmode: disable
+    maxOpenConns: 25
+    maxIdleConns: 5
+    connMaxLifetime: 30m
+    # Example DSN (replace credentials securely in production):
+    dsn: "postgres://heathcliff:password@localhost:5432/playground?sslmode=disable"
+
+security:
+  tls:
+    enabled: false
+    certFile: ""
+    keyFile: ""
+  auth:
+    jwt:
+      enabled: false
+      issuer: playground
+      secret: "secret" # DO NOT use this in production; load from env/secret manager
+
+observability:
+  prometheus: true
+  tracing:
+    enabled: false
+    provider: jaeger
+    endpoint: ""
+
+features:
+  helloEndpoint: true
