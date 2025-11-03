@@ -17,11 +17,7 @@ type Patient struct {
 
 // Prescription models a medication prescription linked to a Patient.
 type Prescription struct {
-	ID uint `gorm:"primaryKey"`
-
-	PatientID uint    `gorm:"index;not null"`
-	Patient   Patient `gorm:"foreignKey:PatientID"`
-
+	ID         uint   `gorm:"primaryKey"`
 	Medication string `gorm:"size:255;not null"`
 	Dosage     string `gorm:"size:100"`
 	Frequency  string `gorm:"size:100"`

@@ -25,16 +25,6 @@ go build -o playground
 
 That's it — a tiny verified example.
 
-Interceptor
------------
-
-This repository now includes a simple gRPC server interceptor implementation in `interceptor.go`.
-
-Files:
-
-- `interceptor.go` - provides `LoggingUnaryServerInterceptor()` and `LoggingStreamServerInterceptor()` which:
-	- log method name and duration
-	- recover from panics and return a gRPC Internal error
 
 Usage (attach to server):
 
@@ -43,7 +33,6 @@ import "google.golang.org/grpc"
 
 srv := grpc.NewServer(
 		grpc.UnaryInterceptor(LoggingUnaryServerInterceptor()),
-		grpc.StreamInterceptor(LoggingStreamServerInterceptor()),
 )
 ```
 

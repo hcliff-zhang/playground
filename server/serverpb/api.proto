@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package serverpb;
+
+option go_package = "github.com/hcliff-zhang/playground/server/serverpb;serverpb";
+
+// Patient message
+message Patient {
+  uint64 id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string gender = 4;
+  string email = 5;
+  string phone = 6;
+  string address = 7;
+  repeated Prescription prescriptions = 8;
+}
+
+// Prescription message
+message Prescription {
+  uint64 id = 1;
+  string medication = 2;
+  string dosage = 3;
+  string frequency = 4;
+  int32 quantity = 5;
+  string notes = 6;
+}
+
+// --- Patient RPC messages ---
+message CreatePatientRequest {
+  Patient patient = 1;
+}
+message CreatePatientResponse {
+  Patient patient = 1;
+}
+
+message GetPatientRequest {
+  uint64 id = 1;
+}
+message GetPatientResponse {
+  Patient patient = 1;
+}
+
+message ListPatientsRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+message ListPatientsResponse {
+  repeated Patient patients = 1;
+  int32 total = 2;
+}
+
+// --- Prescription RPC messages ---
+message CreatePrescriptionRequest {
+  uint64 patient_id = 1;
+  Prescription prescription = 2;
+}
+message CreatePrescriptionResponse {
+  Prescription prescription = 1;
+}
+
+message GetPrescriptionRequest {
+  uint64 id = 1;
+}
+message GetPrescriptionResponse {
+  Prescription prescription = 1;
+}
+
+message ListPrescriptionsForPatientRequest {
+  uint64 patient_id = 1;
+}
+message ListPrescriptionsResponse {
+  repeated Prescription prescriptions = 1;
+}
+
+// API service definition
+service Api {
+  rpc CreatePatient(CreatePatientRequest) returns (CreatePatientResponse);
+  rpc GetPatient(GetPatientRequest) returns (GetPatientResponse);
+  rpc ListPatients(ListPatientsRequest) returns (ListPatientsResponse);
+
+  rpc CreatePrescription(CreatePrescriptionRequest) returns (CreatePrescriptionResponse);
+  rpc GetPrescription(GetPrescriptionRequest) returns (GetPrescriptionResponse);
+  rpc ListPrescriptionsForPatient(ListPrescriptionsForPatientRequest) returns (ListPrescriptionsResponse);
+}
